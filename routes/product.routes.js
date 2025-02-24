@@ -2,10 +2,11 @@ const express = require("express");
 const { global, one } = require("../middlewares/main.mw");
 const productController = require("../modules/product.controller");
 const productValidator = require("../validators/product.validator");
+const multer = require("multer");
 
 const productRoutes = express.Router();
 productRoutes.use(global);
-
+const upload = multer({ dest: "uploads/" });
 const routes = [
   {
     method: "get",
@@ -28,8 +29,14 @@ const routes = [
   {
     method: "post",
     path: "/uploadImg/:productId",
-    middlewares: [one.webAuth, one.validate(productValidator.uploadImg)],
+    middlewares: [one.webAuth, upload.array(["image"])],
     handler: productController.uploadImg,
+  },
+  {
+    method: "delete",
+    path: "/delete/:productId",
+    middlewares: [one.webAuth, one.validate(productValidator.delete)],
+    handler: productController.deleteProduct,
   },
 ];
 

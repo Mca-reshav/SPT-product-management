@@ -19,5 +19,8 @@ module.exports = {
   }),
   uploadImg: Joi.object({
     image: Joi.string().required()
+  }),
+  delete: Joi.object({
+    productId: Joi.string().required()
   })
 };

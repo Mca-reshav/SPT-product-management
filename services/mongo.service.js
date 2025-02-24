@@ -72,6 +72,28 @@ module.exports = {
       }
     });
   },
+  deleteOne(opts = { model: "", query: {}}) {
+    return new Promise(async (resolve) => {
+      try {
+        if (!opts.attributes || opts.attributes.length === 0) {
+          error(
+            `::DATABASE ERROR :: Attributes is required in (delete) method. ${opts.model}`
+          );
+        }
+        let query =
+          opts.query && Object.entries(opts.query).length >= 1
+            ? opts.query
+            : {};
+
+        let getData = await models[opts.model]
+        .deleteOne(query)
+        return resolve(getData);
+      } catch (e) {
+        error(`::DATABASE ERROR :: catch error in (delete) method. ${e}`);
+        return resolve(false);
+      }
+    });
+  },
 
   pagination(
     opts = {

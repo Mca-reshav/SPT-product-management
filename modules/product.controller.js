@@ -1,5 +1,6 @@
 const commonService = require("../services/common.service");
 const {
+  deleteOne,
   create,
   findOne,
   pagination,
@@ -8,6 +9,7 @@ const {
 const { error, log } = require("../services/response.service");
 const { product, user } = require("../utils/messages.utils");
 const moment = require("moment");
+const cloudinary = require("../config/cloudinary.config");
 
 module.exports = {
   async add(req, res) {
@@ -110,27 +112,83 @@ module.exports = {
       error(err);
     }
   },
+  // async uploadImg(req, res) {
+  //   try {
+  //     const productId = req.params?.productId,
+  //       image = req.body?.image;  
+  //     const current = moment().format("YYYY-MM-DD HH:mm:ss");
+  //     const checkImg = await findOne({
+  //       model: "ProductSPT",
+  //       query: { productId: productId},
+  //       attributes: ["image"]
+  //     });
+  //     if (checkImg) {
+  //       const insertImg = await updateOne({
+  //         model: "ProductSPT",
+  //         query: { productId: productId},
+  //         data: { image: image, updatedAt: current, updatedBy: req.user.userId }
+  //       });
+        
+  //       if (insertImg) return res.json(log(true, product.IMG_UPLOAD));
+  //       return res.json(log(false, product.IMG_ERR));
+  //     }
+  //     return res.json(log(false, product.ERROR));
+  //   } catch (err) {
+  //     error(err)
+  //   }
+  // },
   async uploadImg(req, res) {
     try {
-      const productId = req.params?.productId,
-        image = req.body?.image;  
+      const productId = req.params?.productId;
+      if (!req.file) return res.json({ success: false, message: "No image uploaded!" });
+      console.log(req.file.path)
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "products",
+      });
+  
+      const imageUrl = result.secure_url;
       const current = moment().format("YYYY-MM-DD HH:mm:ss");
+  
       const checkImg = await findOne({
         model: "ProductSPT",
-        query: { productId: productId},
-        attributes: ["image"]
+        query: { productId: productId },
+        attributes: ["image"],
       });
+  
       if (checkImg) {
         const insertImg = await updateOne({
           model: "ProductSPT",
-          query: { productId: productId},
-          data: { image: image, updatedAt: current, updatedBy: req.user.userId }
+          query: { productId: productId },
+          data: { image: imageUrl, updatedAt: current, updatedBy: req.user.userId },
         });
-        
-        if (insertImg) return res.json(log(true, product.IMG_UPLOAD));
-        return res.json(log(false, product.IMG_ERR));
+  
+        if (insertImg) return res.json({ success: true, message: "Image updated successfully!", imageUrl });
+        return res.json({ success: false, message: "Failed to update image." });
       }
-      return res.json(log(false, product.ERROR));
+  
+      return res.json({ success: false, message: "Product not found!" });
+    } catch (err) {
+      console.error("Upload Error:", err);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  },
+  async deleteProduct(req, res) {
+    try {
+      const productId = req.params.productId;
+      const isExist  = await findOne({
+        model: "ProductSPT",
+        query: { productId: productId},
+        attributes: ["name"]
+      });
+
+      if (!isExist?.name) return res.json(log(false, product.NOT_EXIST));
+
+      const remove = await deleteOne({
+        model: "ProductSPT",
+        query: { productId: productId}
+      });
+      if (remove) return res.json(log(true, 'success'));
+      return res.json(log(false, "internal error"))
     } catch (err) {
       error(err)
     }
